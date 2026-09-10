@@ -1,22 +1,20 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Python version: 3.6
-
 import matplotlib
+
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import copy
+
+import matplotlib.pyplot as plt
 import numpy as np
-from torchvision import datasets, transforms
 import torch
+from torchvision import datasets, transforms
+from tqdm.auto import tqdm
 
-from utils.sampling import mnist_iid, mnist_noniid, cifar_iid
-from utils.options import args_parser
-from models.Update import LocalUpdate
-from models.Nets import MLP, CNNMnist, CNNCifar
 from models.Fed import FedAvg
+from models.Nets import MLP, CNNCifar, CNNMnist
 from models.test import test_img
-
+from models.Update import LocalUpdate
+from utils.options import args_parser
+from utils.sampling import cifar_iid, mnist_iid, mnist_noniid
 
 if __name__ == '__main__':
     # parse args
@@ -91,13 +89,13 @@ if __name__ == '__main__':
     if args.all_clients: 
         print("Aggregation over all clients")
         w_locals = [w_glob for i in range(args.num_users)]
-    for iter in range(args.epochs):
+    for iter in tqdm(range(args.epochs), desc="Federated Rounds"):
         loss_locals = []
         if not args.all_clients:
             w_locals = []
         m = max(int(args.frac * args.num_users), 1)
         idxs_users = np.random.choice(range(args.num_users), m, replace=False)
-        for idx in idxs_users:
+        for idx in tqdm(idxs_users, desc=f'Round {iter + 1} clients', leave=False):
             local = LocalUpdate(args=args, dataset=dataset_train, idxs=dict_users[idx])
             w, loss = local.train(net=copy.deepcopy(net_glob).to(args.device))
             if args.all_clients:
@@ -120,6 +118,7 @@ if __name__ == '__main__':
     plt.figure()
     plt.plot(range(len(loss_train)), loss_train)
     plt.ylabel('train_loss')
+    plt.xlabel('federated round')
     plt.savefig('./save/fed_{}_{}_{}_C{}_iid{}.png'.format(args.dataset, args.model, args.epochs, args.frac, args.iid))
 
     # testing

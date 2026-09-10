@@ -1,13 +1,11 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Python version: 3.6
-
-import torch
-from torch import nn, autograd
-from torch.utils.data import DataLoader, Dataset
-import numpy as np
 import random
+
+import numpy as np
+import torch
 from sklearn import metrics
+from torch import autograd, nn
+from torch.utils.data import DataLoader, Dataset
+from tqdm.auto import tqdm
 
 
 class DatasetSplit(Dataset):
@@ -36,9 +34,9 @@ class LocalUpdate(object):
         optimizer = torch.optim.SGD(net.parameters(), lr=self.args.lr, momentum=self.args.momentum)
 
         epoch_loss = []
-        for iter in range(self.args.local_ep):
+        for iter in tqdm(range(self.args.local_ep), desc='Local Epochs', leave=False):
             batch_loss = []
-            for batch_idx, (images, labels) in enumerate(self.ldr_train):
+            for batch_idx, (images, labels) in tqdm(enumerate(self.ldr_train), total=len(self.ldr_train), desc='Local Batches', leave=False):
                 images, labels = images.to(self.args.device), labels.to(self.args.device)
                 net.zero_grad()
                 log_probs = net(images)
