@@ -40,7 +40,24 @@ def test(net_g, data_loader):
 if __name__ == '__main__':
     # parse args
     args = args_parser()
-    args.device = torch.device('cuda:{}'.format(args.gpu) if torch.cuda.is_available() and args.gpu != -1 else 'cpu')
+    if args.device_select == 'auto':
+        if torch.cuda.is_available() and args.gpu != -1:
+            resolved = 'cuda:{}'.format(args.gpu)
+        elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available() and args.gpu != -1:
+            resolved = 'mps'
+        else:
+            resolved = 'cpu'
+    elif args.device_select == 'cuda' and args.gpu != -1:
+        if not torch.cuda.is_available():
+            raise RuntimeError("Cuda selected but not available")
+        resolved = 'cuda:{}'.format(args.gpu)
+    elif args.device_select == 'mps' and args.gpu != -1:
+        if not hasattr(torch.backends, 'mps') or not torch.backends.mps.is_available():
+            raise RuntimeError("MPS selected but not available")
+        resolved = 'mps'
+    else:
+        resolved = 'cpu'
+    args.device = torch.device(resolved)
 
     torch.manual_seed(args.seed)
 
